@@ -1,0 +1,269 @@
+---
+title: "Primera Tarea de Microeconmetría Aplicada"
+author: "Miguel Lerdo de Tejada Flores"
+date: "`r format(Sys.Date(),  '%A %d, %B %Y' )`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+  pdf_document: default
+header-includes:
+- \usepackage{amsmath}
+- \usepackage[spanish,activeacute]{babel}
+- \decimalpoint
+- \usepackage[utf8]{inputenc}
+- \usepackage{fancyhdr}
+- \usepackage{geometry}
+- \usepackage{amsmath}
+- \usepackage{enumerate}
+- \usepackage{hyperref}
+- \usepackage{float}
+- \usepackage{multirow}
+- \usepackage{float}
+- \usepackage{placeins}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	fig.height = 4,
+	fig.width = 6,
+	message = FALSE,
+	warning = FALSE,
+	cache = TRUE,
+	digits = 2,
+	width = 48
+
+)
+```
+
+```{r, include=FALSE}
+options(	scipen =   999  )
+```
+```{r}
+
+```
+
+```{r data, include=FALSE}
+#Librerias
+#--------------
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(broom)
+library(ggbernie)
+library(ggpubr)
+
+#-----------------
+#-------------------
+
+#cargamos y limpiamos la base datos
+f_salud <- as.data.frame(read_csv("f_salud.csv"))
+f_salud <- f_salud[!is.na(f_salud$ghe_ge),]
+#reinicio la numeracion de los renglones
+rownames(f_salud) <- 1:nrow(f_salud)
+```
+
+
+# Pregunta 1
+
+Considerando el porcentaje del gasto de gobierno que se destina a salud (ghe\_ge), realiza lo siguiente:
+```{r 1.a, include=FALSE}
+ybar <- mean(f_salud$ghe_ge)
+y_var <- var(f_salud$ghe_ge)
+ybar_var <- var(f_salud$ghe_ge)/length(f_salud$ghe_ge)
+```
+1. Calcula los valores estimados de la media, varianza muestral y varianza de la media. 
+  - El valor estimado de la media es `r ybar`, el de la varianza es `r y_var` y el de la varianza de la media es `r ybar_var`.
+2.  Supón que lees un artículo periodístico que indica que Noruega es un país representativo. Es decir, que su valor de ghe\_ge es igual a la media mundial ($\mu$). Empieza por hacer un histograma con los datos que tienes. Ubica la posición de Noruega en dicha distribución y reporta a qué percentil corresponde el valor de Noruega [Tip R: Puedes utilizar el paquete \texttt{tidyverse} y la función \texttt{geom\_hist} para elaborar un histograma]. 
+  - El valor de Noruega es `r f_salud[f_salud$country=="Norway",]$ghe_ge` y su percentil es `r ceiling(ecdf(f_salud$ghe_ge)(f_salud[f_salud$country=="Norway",]$ghe_ge)*100)`%
+```{r 1.b, fig.align='center', fig.cap='Histograma de frecuencias del gasto de gobierno destinado a salud',  fig.dim=c(6,3)}
+    ggplot(f_salud,aes(x=ghe_ge))+
+      geom_histogram(color="green", fill="darkgreen", binwidth=0.3)+xlab("gasto de gobierno destinado a salud")+
+  ggtitle("El gasto de Noruega destinado a salud es mayor respecto a otros")+
+      geom_vline(aes(xintercept = f_salud[f_salud$country=="Norway",]$ghe_ge, colour="Noruega"))+
+      scale_color_manual(values=c(Noruega="red"),name="")+
+      theme_minimal()
+```
+\FloatBarrier
+3.  Plantea la prueba de hipótesis relevante que necesitarías evaluar para rechazar (o no) dicha afirmación. Eval\'ua dicha prueba de hipótesis utilizando el valor-p y concluye utilizando distintos niveles de significancia (1\%, 5\% y 10\%).
+```{r 1.c}
+pval <- 2*(pnorm(-abs((ybar-10)/sqrt(ybar_var))))
+
+```
+  - La prueba de hipótesis relevante es: $$ H_0:\;\mu=10\;\;\;v.s.\;\;H_a:\mu\neq10 $$ En este caso, nuestro estadístico de prueba es $T={\overline{y}-\mu\over sd(\overline{y})}\;\sim\;\mathcal{N}(0,1)$ que toma un valor de $t={\overline{y}-10\over sd(\overline{y})}=$`r (ybar-10)/sqrt(ybar_var)` bajo $H_0$ y el valor p es: $P(|T| \geq |t|)=2(1-\Phi(|t|))\approx$ `r pval`. Notemos que `r pval`<0.01 por lo que se rechaza $H_0$ a ese nivel de significancia y a cualquier nivel de significancia mayor.
+4. . Imagina que utilizas una hipótesis alternativa unilateral que indica que la media mundial es menor a \emph{K} veces al valor de Noruega: \\
+       $$
+            H_0:\; \mu = K*ghe\_ge_{Noruega}\;\;v.s.\;\;H_1:\; \mu < K*ghe\_ge_{Noruega}
+        $$
+        Supón que quieres utilizar una cota inferior de $\mu$ (i.e. un intervalo de confianza unilateral) para evaluar la prueba de hipótesis. >Cuál es el valor de $K$ a partir del cual rechazarías la prueba de hipótesis al 5\%?
+```{r 1.d}
+        
+  K <- (ybar-sqrt(ybar_var)*qnorm(0.05))/f_salud[f_salud$country=="Norway",]$ghe_ge
+```
+  - Necesitamos encontrar K tal que $P(T\leq t|\mu=K*10)=P\left(T\leq {\overline{y}-K10\over sd(\overline{y})}\right)=\Phi\left({\overline{y}-K10\over sd(\overline{y})}\right)\leq0.05$ que si despejamos de la igualdad obtenemos que $K={\overline{y}-sd(\overline{y})\Phi^{-1}(0.05)\over10}=$$`r K`$.  
+    
+# Pregunta 2
+Ahora estás interesado en conocer la posición de México en la distribución mundial. 
+    
+    
+1.  Empieza por agregar a México en el histograma que produjiste en la pregunta 1b. Calcula a qué percentil corresponde el valor de México. 
+  - El valor de México es `r f_salud[f_salud$country=="Mexico",]$ghe_ge` y su percentil es `r ceiling(ecdf(f_salud$ghe_ge)(f_salud[f_salud$country=="Mexico",]$ghe_ge)*100)`.
+```{r 2.a,fig.align='center', fig.cap='Histograma de frecuencias del gasto destinado a salud',  fig.dim=c(5.3,3),fig.pos='H'}
+  ggplot(f_salud,aes(x=ghe_ge))+
+  geom_histogram(color="green", fill="darkgreen", binwidth=0.3)+xlab("gasto de gobierno destinado a salud")+
+  geom_vline(aes(xintercept = c(f_salud[f_salud$country=="Norway" ,]$ghe_ge), colour="Noruega"))+
+  geom_vline(aes(xintercept = f_salud[f_salud$country=="Mexico",]$ghe_ge, colour="Mexico"),name="")+
+  scale_color_manual(values=c(Noruega="red",Mexico="blue"),name="")+
+  theme_minimal()+
+  ggtitle("El gasto de Noruega destinado a salud es mayor que el de México")
+  
+```
+\FloatBarrier
+2. El valor del percentil que calculaste en la pregunta anterior depende de la muestra de países que tienes. Por lo tanto, es una variable aleatoria. En esta sección calcularemos un intervalo de confianza de 95\% para el percentil al cual corresponde México. 
+        
+    a.  Para empezar lleva a cabo esta estimación utilizando el método de Bootstrap con 200 repeticiones y submuestras de tamaño 120. Utilizando el resultado de estas 200 repeticiones calcula la varianza de tu estadístico y asumiendo una distribución normal reporta el intervalo que resultaría [Tip R: Puedes construir un for loop en el que en cada ciclo generes una submuestra con la función \texttt{sample} y a dicha submuestra le calcules el percentil al que pertenece México. Considera que la función \texttt{sample} se aplica sobre vectores, en este caso el vector sería la columna de tu dataframe que corresponde a la variable de interés].
+```{r 2bI }
+muestras <- map(1:200,
+                function(x){
+                  set.seed(x)
+                  f_salud %>%
+                    slice_sample(n=120,replace=T)
+                })
+
+percentiles <- map_dbl(muestras, ~ecdf(.$ghe_ge)(f_salud[f_salud$country=="Mexico",]$ghe_ge))
+pbarra <- mean(percentiles)
+pbarra_var <- var(percentiles)
+IC1 <- c((pbarra)-(qnorm(0.975))*sqrt(pbarra_var),(pbarra)+(qnorm(0.975))*sqrt(pbarra_var))
+```
+        - El intervalo tiene límite inferior `r IC1[1]` y límite superior `r IC1[2]`, y la varianza del estadísticos es `r pbarra_var`. 
+    b.  A continuación reporta el intervalo utilizando los valores de las 200 simulaciones y descartando el 2.5\% de los valores más pequeños y el 2.5\% de los valores más altos.
+```{r 2bII }
+IC2 <- sort(percentiles[percentiles>quantile(percentiles,0.025) && percentiles<quantile(percentiles,0.975)])
+
+```
+        - El intervalo tiene límite inferior `r IC2[1]` y límite superior `r IC2[NROW(IC2)]`.
+    c.  Grafica el resultado de las 200 repeticiones utilizando un histograma. Utiliza el histograma para argumentar cuál de los dos incisos anteriores consideras que sería un procedimiento más válido para calcular el intervalo de confianza. 
+```{r 2bIII, fig.align='center', fig.cap='Medias obtenidas mediante el procedimiento bootstrap',  fig.dim=c(5,3),fig.pos='H'}
+  ggplot(as.data.frame(percentiles),aes(x=percentiles))+
+  geom_histogram(color="darkred",fill="salmon",bins=33)+xlab("percentiles")+
+  geom_errorbarh(aes(xmin=IC1[1],xmax=IC1[2],y=5,color="normal"),
+                   size=1,height=0.8)+
+  geom_errorbarh(aes(xmin=IC2[1],xmax=IC2[NROW(IC2)],y=10,color="cuantiles"),
+                   size=1,height=0.8)+
+  scale_color_manual(values=c(normal="green",cuantiles="blue"),name="")+
+  theme_minimal()+
+  ggtitle("La distribución de las medias aproxima a una normal")
+  
+
+```
+\FloatBarrier
+    - Al ver el histograma parece que el primer procedimiento es el más adecuado para calcular un intervalo de confianza. El supuesto de normaidad no parece un problema y el intervalo es menor.
+    d. Repite los dos primeros incisos, pero utilizando el método de Bootstrap con submuestras de tamaño 100. Nuevamente lleva a cabo 200 repeticiones y genera los dos intervalos indicados en esos incisos.  
+```{r 2bIV  }
+muestras2 <- map(1:200,
+                function(x){
+                  set.seed(x)
+                  f_salud %>%
+                    slice_sample(n=100,replace=T)
+                })
+
+percentiles2 <- map_dbl(muestras2, ~ecdf(.$ghe_ge)(f_salud[f_salud$country=="Mexico",]$ghe_ge))
+pbarra <- mean(percentiles2)
+#recordemos qe hay que ajustar la varianza cuando tenemos una submuestra
+#con L<n elementos
+pbarra_bar <- (100/120)*var(percentiles2)
+IC1_100 <- c((pbarra)-(qnorm(0.975))*sqrt(pbarra_bar),(pbarra)+(qnorm(0.975))*sqrt(pbarra_bar))
+
+
+
+IC2_100 <- sort(percentiles2[percentiles2>quantile(percentiles2,0.025) && percentiles2<quantile(percentiles2,0.975)])
+
+```
+        - El intervalo con normalidad tiene límite inferior `r IC1_100[1]` y límite superior `r IC1_100[2]`, y el intervalo de descarte de cuantiles tiene límite inferior `r IC2_100[1]` y límite superior `r IC2_100[NROW(IC2_100)]`. Recordemos que como en este caso las submuestras son de un tamaño L=100<120=n tenemos que realizarle un ajuste a la varianza y multiplicarla por ${100\over120}$.
+      
+    e.  Muestra en una misma gráfica el resultado de los 4 intervalos que obtuviste.
+```{r 2bV, fig.align='center', fig.cap='Histrograma de medias obtenidas mediante bootstrap',  fig.dim=c(5,3),fig.pos='H' }
+
+ggplot(as.data.frame(percentiles),aes(x=percentiles))+
+  geom_histogram(color="darkred",fill="salmon",bins=33)+xlab("percentiles")+
+  geom_errorbarh(aes(xmin=IC1[1],xmax=IC1[2],y=5,color="normal120"),size=1,height=0.8)+
+  geom_errorbarh(aes(xmin=IC2[1],xmax=IC2[NROW(IC2)],y=10,color="cuantiles120"),size=1,height=0.8)+
+  geom_errorbarh(aes(xmin=IC1_100[1],xmax=IC1_100[2],y=15,color="normal100"),size=1,height=0.8)+
+  geom_errorbarh(aes(xmin=IC2_100[1],xmax=IC2_100[NROW(IC2_100)],y=20,color="cuantiles100"),size=1,height=0.8)+
+  scale_color_manual(values=c(normal120="green4",cuantiles120="blue4",normal100="green1",cuantiles100="blue1"),name="",labels=c("cuantiles n=100","cuantiles n=120","normal n=100","normal n=120"))+
+  theme_minimal()+
+  ggtitle("los intervalos normales parecen ser mejores")
+
+
+
+
+```
+   \FloatBarrier   
+        
+        
+# Pregunta 3    
+    
+Ahora veremos la relación que existe entre el gasto per cápita en salud realizado directamente por los hogares (ope\_he\_pc) y el gasto de gobierno per cápita destinado al rubro de salud (ghe\_pc):
+    
+1.  Empieza por calcular la correlación muestral entre las variables ope\_he\_pc y ghe\_pc. Grafica un diagrama de dispersión entre las dos variables. Repite estos dos pasos utilizando el logaritmo natural de ambas variables. (junto con este diagrama de dispersión muestra la línea que resultaría de una regresión de mínimos cuadrados ordinarios simple) [Tip R: Puedes utilizar el paquete \texttt{tidyverse} y la función \texttt{geom\_point} para graficar un diagrama de dispersión].  
+    - Denoto como $\rho$ a la correlación, ambos cálculos se pueden apreciar en las gráficas.
+```{r 3a1,fig.align='center', fig.cap='dispersión entre ope_he_pc y ghe_pc',  fig.dim=c(6,3),fig.pos='H',message=FALSE,collapse=TRUE }
+ggplot(f_salud,aes(y=ope_he_pc,x=ghe_pc))+
+  geom_jitter(alpha=0.5,color = "#821255")+
+  geom_smooth(method = "lm" , se = FALSE)+
+  xlab("gasto per capita en salud gobierno")+
+  ylab("gasto per capita en salud hogar")+
+  ggtitle("La correlación (rho) entre ope_he_pc y ghe_pc es positiva")+
+  stat_cor(method="pearson",cor.coef.name = "rho",aes(label=..r.label..),label.x=3)
+ggplot(f_salud,aes(y=log(ope_he_pc),x=log(ghe_pc)))+
+  geom_jitter(alpha=0.5,color = "#821255")+ylab("log gasto per capita en salud hogar")+
+  xlab("log gasto per capita en salud gobierno")+
+  geom_smooth(method = "lm" , se=FALSE)+
+  ggtitle("La correlación (rho) entre log(ope_he_pc) y log(ghe_pc) es positiva")+
+  stat_cor(method="pearson",cor.coef.name = "rho",aes(label=..r.label..),label.x=3)
+```
+\FloatBarrier
+       
+2.  Ahora, utilizando el método Jackknife, calcula el intervalo de confianza al 90\% para la correlación entre las variables ope\_he\_pc y ghe\_pc Grafica un histograma para las correlaciones estimadas y reporta tu intervalo (señala si realizaste algún supuesto para el cálculo del intervalo). [Tip R: Al igual que el Bootstrap, puedes utilizar un for loop. En este caso, debes indicarle a R que en el ciclo $n$ no considere la observación $n$ de tu data frame. Para indicarle a R que no considere la $n$-ésima observación de un data frame, basta con indicar \texttt{data\_frame[-n,]}].
+```{r 3b, fig.align='center', fig.cap='correlaciones obtenidas mediante jacknife',  fig.dim=c(5,3),fig.pos='H',message=FALSE }
+
+muestras_cor <- map(1:nrow(f_salud),
+                 function(x){
+                   f_salud <- f_salud[-x,]
+                     
+                 })
+
+correlaciones <- map_dbl(muestras_cor, ~cor(.$ghe_pc,.$ope_he_pc))
+
+ggplot(as.data.frame(correlaciones),aes(x=correlaciones))+
+  geom_histogram(color="darkblue",fill="blue")+xlab("correlaciones")+
+  ggtitle("La distribución de las correlaciones es muy estrecha")
+
+#suponiendo normalidad
+corbarra <- mean(correlaciones)
+corbarra_bar <- ((length(correlaciones)-1)/length(correlaciones))*var(correlaciones)
+IC1_cor <- c((corbarra)-(qnorm(0.95))*sqrt(corbarra_bar),(corbarra)+(qnorm(0.95))*sqrt(corbarra_bar))
+
+#ordenando
+IC2_cor <- sort(correlaciones[correlaciones>quantile(correlaciones,0.05) && correlaciones<quantile(correlaciones,0.95)])
+
+
+```
+    - Suponiendo normalidad, obtenemos un intervalo con límite inferior `r IC1_cor[1]` y límite superior `r IC1_cor[2]`.
+
+3. Lleva a cabo una estimación de una regresión simple MCO entre ope\_he\_pc (variable $Y$) y ghe\_pc (variable $X$). Reporta el valor estimado del coeficiente de ghe\_pc y su error estándar. Basado en los resultados del inciso anterior, >se te ocurre una manera de obtener el mismo valor estimado y un error estándar? (Tip: el valor estimado debería darte idéntico, pero el error estándar no).
+
+```{r 3.c }
+tib <- tidy(lm( ope_he_pc ~ ghe_pc,f_salud))
+```
+  - El coeficiente es `r tib$estimate[2]` y su error estándar es `r tib$std.error[2]`. Ahora, podemos estimar mediante Jacknife ya que conocemos la fórmula del estimador del coeficiente $\left(\beta={cov(y,x)\over var(x)}\right)$. La estimación es con el siguiente código, donde `muestras_cor` son los resamplings del inciso anterior y `coef` es la colección de coeficientes:
+```{r 3.c jack, echo=TRUE, warning=TRUE}
+  coef <- map_dbl(muestras_cor, ~cov(.$ghe_pc,.$ope_he_pc)/var(.$ghe_pc))
+
+```
+  - Obtenemos que el coeficiente es la media de los coeficientes estimados con valor de `r mean(coef)` y error estándar (recordemos que la varianza de Jacknife se debe ajustar) con valor `r ((length(muestras_cor)-1)/length(muestras_cor))*var(coef)`.
+    
+
+
